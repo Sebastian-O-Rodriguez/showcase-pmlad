@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1049" height="1276" viewBox="0 0 1049 1276">
+<rect width="100%" height="100%" fill="#1a1b26" rx="10"/>
+<circle cx="24" cy="20" r="6" fill="#f7768e"/>
+<circle cx="44" cy="20" r="6" fill="#e0af68"/>
+<circle cx="64" cy="20" r="6" fill="#9ece6a"/>
+<text x="16" y="46" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#9ece6a" font-weight="700">RLS Default-Deny Demo — defense-in-depth survives an app bug</text>
+<text x="16" y="66" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">Connected as: app_role (restricted, non-superuser)</text>
+<text x="16" y="86" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">DB: postgresql://app_role:***@127.0.0.1:5433/showcase</text>
+<text x="16" y="106" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"></text>
+<text x="16" y="126" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#7dcfff" font-weight="700">═══════════════════════════════════════════════════════════════</text>
+<text x="16" y="146" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#e0af68" font-weight="700">  1. SCOPED (CORRECT) QUERY — app set session vars</text>
+<text x="16" y="166" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#7dcfff" font-weight="700">═══════════════════════════════════════════════════════════════</text>
+<text x="16" y="186" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#bb9af7" font-weight="400">  app.current_org    = aaaaaaaa-0000-0000-0000-000000000001</text>
+<text x="16" y="206" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#bb9af7" font-weight="400">  app.current_entity = aaaaaaaa-0000-0000-0000-000000000011</text>
+<text x="16" y="226" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">BEGIN</text>
+<text x="16" y="246" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">SET</text>
+<text x="16" y="266" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">SET</text>
+<text x="16" y="286" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"> visible_properties </text>
+<text x="16" y="306" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">--------------------</text>
+<text x="16" y="326" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">                  2</text>
+<text x="16" y="346" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">(1 row)</text>
+<text x="16" y="366" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"></text>
+<text x="16" y="386" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">     name     |          address           </text>
+<text x="16" y="406" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">--------------+----------------------------</text>
+<text x="16" y="426" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"> Oak Manor    | 456 Oak Ave, OrgA-EntityA1</text>
+<text x="16" y="446" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"> Sunset Villa | 123 Main St, OrgA-EntityA1</text>
+<text x="16" y="466" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">(2 rows)</text>
+<text x="16" y="486" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"></text>
+<text x="16" y="506" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">ROLLBACK</text>
+<text x="16" y="526" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"></text>
+<text x="16" y="546" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#7dcfff" font-weight="700">═══════════════════════════════════════════════════════════════</text>
+<text x="16" y="566" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#e0af68" font-weight="700">  2. UNSCOPED QUERY — app FORGOT session vars (the bug)</text>
+<text x="16" y="586" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#7dcfff" font-weight="700">═══════════════════════════════════════════════════════════════</text>
+<text x="16" y="606" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#bb9af7" font-weight="400">  (no app.current_org / app.current_entity set)</text>
+<text x="16" y="626" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">BEGIN</text>
+<text x="16" y="646" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"> visible_properties </text>
+<text x="16" y="666" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">--------------------</text>
+<text x="16" y="686" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#f7768e" font-weight="400">                  0</text>
+<text x="16" y="706" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">(1 row)</text>
+<text x="16" y="726" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"></text>
+<text x="16" y="746" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"> visible_invoices </text>
+<text x="16" y="766" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">------------------</text>
+<text x="16" y="786" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#f7768e" font-weight="400">                0</text>
+<text x="16" y="806" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">(1 row)</text>
+<text x="16" y="826" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"></text>
+<text x="16" y="846" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">ROLLBACK</text>
+<text x="16" y="866" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"></text>
+<text x="16" y="886" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#7dcfff" font-weight="700">═══════════════════════════════════════════════════════════════</text>
+<text x="16" y="906" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#e0af68" font-weight="700">  3. CROSS-TENANT QUERY — app asked for Org B&#x27;s entity</text>
+<text x="16" y="926" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#7dcfff" font-weight="700">═══════════════════════════════════════════════════════════════</text>
+<text x="16" y="946" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#bb9af7" font-weight="400">  app.current_org    = aaaaaaaa-0000-0000-0000-000000000001  (but querying entity bbbbbbbb-0000-0000-0000-000000000011)</text>
+<text x="16" y="966" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">BEGIN</text>
+<text x="16" y="986" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">SET</text>
+<text x="16" y="1006" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">SET</text>
+<text x="16" y="1026" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"> cross_tenant_rows </text>
+<text x="16" y="1046" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">-------------------</text>
+<text x="16" y="1066" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#f7768e" font-weight="400">                 0</text>
+<text x="16" y="1086" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">(1 row)</text>
+<text x="16" y="1106" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"></text>
+<text x="16" y="1126" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">ROLLBACK</text>
+<text x="16" y="1146" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400"></text>
+<text x="16" y="1166" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#7dcfff" font-weight="700">═══════════════════════════════════════════════════════════════</text>
+<text x="16" y="1186" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#e0af68" font-weight="700">  RESULT</text>
+<text x="16" y="1206" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#7dcfff" font-weight="700">═══════════════════════════════════════════════════════════════</text>
+<text x="16" y="1226" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">Scoped query returns rows; unscoped and cross-tenant queries return 0.</text>
+<text x="16" y="1246" font-family="ui-monospace,Menlo,Monaco,Consolas,monospace" font-size="14" fill="#c0caf5" font-weight="400">Isolation is enforced by PostgreSQL, not by application code.</text>
+</svg>
