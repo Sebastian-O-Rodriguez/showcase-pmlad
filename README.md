@@ -1,8 +1,12 @@
-# DB-Enforced Multi-Tenant Isolation (PostgreSQL RLS)
+# Tenant isolation that survives an app bug — enforced by Postgres, not the app
 
-> **One strong sentence:** PostgreSQL Row-Level Security enforces tenant isolation at the database — not application code — so a bug that forgets session vars returns zero rows instead of leaking another tenant's data.
+> PostgreSQL Row-Level Security enforces multi-tenant isolation at the **database**, not in application code — so a developer who forgets to scope a query returns **zero rows instead of another tenant's data**.
 
-**[Hero Proof](docs/hero-proof.svg)**: scoped query → 2 rows; unscoped query → 0 rows; cross-tenant query → 0 rows. All 13 validation groups pass.
+**[Hero proof](docs/hero-proof.svg)** — scoped query → 2 rows · unscoped query → 0 rows · cross-tenant query → 0 rows. All 13 validation groups pass.
+
+**The hard problem → what I built → the proof.** SaaS data leaks almost always trace to an application bug — a missing `WHERE tenant_id = …`. I made the database the last line of defense: a `FORCE ROW LEVEL SECURITY` + default-deny policy set, wired through a transaction proxy that injects session context behind one SQL-injection-proof gate, and a 13-group validation suite that runs in staging **and** production. The proof is attached: forget the context, get zero rows — no code change.
+
+*Signals: systems / forward-deployed engineering. Ask me about `SET LOCAL` inside `$transaction`, or why I validate in raw SQL instead of a test framework.*
 
 ---
 
