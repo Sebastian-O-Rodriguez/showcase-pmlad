@@ -1,6 +1,10 @@
-# Multi-Tenant Isolation at the Database Layer
+# PMLAD — AI-native property management
 
-Multi-tenant apps usually trust every query to remember its tenant filter. This project doesn't: **PostgreSQL enforces the tenant boundary itself**, so an application bug returns zero rows instead of another customer's data.
+**PMLAD is an AI-native property management platform designed to make property operations simpler for managers and tenants — from maintenance workflows and tenant communication to reporting and assisted operations.**
+
+The broader project explores how agentic workflows can reduce the manual coordination involved in property management while keeping sensitive tenant and property data behind explicit security boundaries.
+
+**Showcase focus: multi-tenant isolation** — the boundary that makes the rest of the product safe to build on:
 
 ```mermaid
 flowchart TB
@@ -16,6 +20,20 @@ flowchart TB
 ```
 
 Nothing in the application blocks the second and third requests. The database does.
+
+## The Product
+
+Property management runs on coordination: maintenance requests moving between tenants and managers, rent and invoice tracking, unit turnover, and a constant stream of small operational decisions. PMLAD exists to carry that coordination in software — a multi-tenant platform covering properties, units, tenants, leases, invoices, and work orders, with portfolio dashboards on top.
+
+Its AI-native direction is to assist the coordination itself: surfacing what needs attention, drafting the repetitive communication, and eventually executing routine property workflows with human approval — always inside the same explicit security boundaries the rest of the platform enforces.
+
+## What This Showcase Covers
+
+> **About this repository**
+>
+> This is a public showcase of selected engineering from the larger private PMLAD project. It is intentionally not the full application. The repository focuses on a technically meaningful subsystem that can be demonstrated publicly without exposing private code, data, or infrastructure.
+
+This repository reconstructs selected backend architecture from the private project around one foundational requirement for the larger system: safe multi-tenant data isolation. It demonstrates how tenant boundaries are enforced at the database layer so missing or incorrect application context fails closed rather than exposing another tenant's data.
 
 ## See It Work
 
@@ -33,12 +51,6 @@ docker compose up -d          # throwaway Postgres 16
 - Case 1 is a normal request: the app states which tenant it is acting for, and gets that tenant's rows.
 - Cases 2 and 3 are the failure modes that leak data in most stacks. Here both return nothing.
 - A full 13-group suite (`./scripts/validate-rls.sh`) runs the same checks plus write attempts, forged context, and bypass attempts — 13/13 pass.
-
-## The Problem
-
-In a typical multi-tenant app, isolation lives in application code: every query must include `WHERE tenant_id = :current_tenant`. That works until it doesn't — one forgotten filter in one endpoint, one new developer, one refactored query, and customers see each other's data. Code review reduces the odds; it cannot reduce them to zero.
-
-The fix is to move the boundary out of the application entirely. The database already knows which rows belong to which tenant; it should refuse to return anything else no matter what the asking query looks like.
 
 ## How It Works
 
@@ -65,32 +77,30 @@ sequenceDiagram
 
 ## Engineering Highlights
 
-### 1. The database, not the application, is the last line of defense
+### 1. Database-enforced tenant isolation
 
-Any developer can write a query that forgets the tenant filter; review lowers the odds but never to zero. Row-level security policies move enforcement to the one layer that sees every query. The tradeoff is deliberate: a query without valid context silently returns nothing, which can be harder to debug than an error — a confusing empty result beats a cross-tenant leak.
+In a typical multi-tenant app, isolation lives in application code: every query must include `WHERE tenant_id = :current_tenant`. One forgotten filter in one endpoint, and customers see each other's data. Row-level security policies move enforcement to the one layer that sees every query, so a bug that omits the filter returns an empty result instead of another tenant's rows. The tradeoff is deliberate: a query without valid context silently returns nothing, which can be harder to debug than an error — a confusing empty result beats a cross-tenant leak.
 
-### 2. Tenant context travels safely into the database
+### 2. Request-to-database tenant context
 
 Postgres session variables can't be parameterized like ordinary values, so setting them from application data is an injection risk. Context is set inside the request's own transaction (`SET LOCAL`, so it expires with the transaction and can't leak to the next request on a pooled connection), and every tenant id is validated against a strict UUID format before it is ever interpolated. Malformed input fails closed before reaching the database.
 
-### 3. Adversarial verification
+### 3. Adversarial verification and safe failure
 
 An isolation claim is only as good as the tests trying to break it. The validation suite runs as plain SQL against the live database and deliberately attempts the failures that matter: missing context, wrong tenant, cross-tenant writes, forged or empty context, and a session trying to switch row-level security off (the database errors instead of complying). The same suite runs in staging with writes and in production read-only before any deploy.
 
-## Technical Deep Dive: default-deny by sentinel
+## Project Status
 
-The interesting part is what a policy does when the context is *absent*. Each policy coalesces a missing or empty context to a sentinel UUID that can never match a real row:
+| Capability | Status |
+|---|---|
+| Core property-management application (properties, units, tenants, leases, invoices) | Built |
+| Maintenance / work-order workflows | Built |
+| Portfolio dashboards and reporting | Built |
+| Multi-tenant architecture | Built |
+| Tenant-isolation subsystem shown in this showcase | Built — deployed to production in the private project |
+| AI-assisted property workflows | Product direction |
 
-```sql
-organization_id = coalesce(
-  nullif(current_setting('app.current_org', true), ''),
-  '00000000-0000-0000-0000-000000000000'
-)::uuid
-```
-
-No real row carries the nil UUID, so a contextless query is not rejected loudly — it matches nothing and returns an empty result. `FORCE ROW LEVEL SECURITY` keeps the policy active even for the table owner, closing the "connected with the wrong role" hole.
-
-## Run It
+## Run This Showcase
 
 ```bash
 docker compose up -d
@@ -110,11 +120,9 @@ Requires Docker and `psql`.
 | Validation suite | Reconstructed | Same structure and edge cases as the production suite; fewer tables (3 vs 12). |
 | Data model | Reconstructed | Minimal equivalent: Organization → Entity → Property/Invoice. |
 | Seed data | Mocked | Fixed UUIDs, no real customer data. |
-| Infrastructure & app framework | Omitted | No Azure, Clerk, Sentry, NestJS/Prisma — the proxy pattern is documented above. |
+| Infrastructure & app framework | Omitted | No cloud infra, auth provider, or app framework — the context-propagation pattern is documented above. |
 | Credentials | Sanitized | Demo-only password for a throwaway Docker Postgres. |
-
-Extracted from a private multi-tenant property-management SaaS where the production version of this design runs on 12 tenant tables.
 
 ## About
 
-Built by Sebastian O. Rodriguez. The interesting problem here was not writing the policies — it was proving they survive application bugs, and shipping that proof to run in staging and production.
+Built by Sebastian O. Rodriguez. The private PMLAD project is a launched multi-tenant SaaS in active use; the isolation design shown here runs on its production database today.
