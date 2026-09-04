@@ -4,7 +4,11 @@
 
 The broader project explores how agentic workflows can reduce the manual coordination involved in property management while keeping sensitive tenant and property data behind explicit security boundaries.
 
-**Showcase focus: multi-tenant isolation** — the boundary that makes the rest of the product safe to build on:
+**This public repository demonstrates one foundational backend subsystem from the larger private PMLAD application: database-enforced tenant isolation.**
+
+### Public showcase focus: multi-tenant isolation
+
+The boundary that makes the rest of the product safe to build on:
 
 ```mermaid
 flowchart TB
@@ -97,7 +101,7 @@ An isolation claim is only as good as the tests trying to break it. The validati
 | Maintenance / work-order workflows | Built |
 | Portfolio dashboards and reporting | Built |
 | Multi-tenant architecture | Built |
-| Tenant-isolation subsystem shown in this showcase | Built — deployed to production in the private project |
+| Tenant-isolation subsystem shown in this showcase | Built — validated and deployed to the private application's production database |
 | AI-assisted property workflows | Product direction |
 
 ## Run This Showcase
@@ -125,4 +129,4 @@ Requires Docker and `psql`.
 
 ## About
 
-Built by Sebastian O. Rodriguez. The private PMLAD project is a launched multi-tenant SaaS in active use; the isolation design shown here runs on its production database today.
+Built by Sebastian O. Rodriguez. PMLAD is a deployed private application in active dogfooding; the isolation design shown here is the one enforced on its production database.
