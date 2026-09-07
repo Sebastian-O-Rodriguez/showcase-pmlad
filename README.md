@@ -24,11 +24,39 @@ The work that flows through those relationships — leases, maintenance requests
 
 ## What the product does
 
-The interface is organized around the roles doing the work, not around a dashboard you have to decode:
+The interface is organized around the roles doing the work, not around a dashboard you have to decode. (The screenshots below are from the running application with synthetic demo data.)
 
-- **Owners** get a portfolio view — occupancy, revenue, blocked invoices, and maintenance backlog across every property.
-- **Property managers** get an operational inbox — invoices awaiting approval, unit turns in progress, open work orders. It's the daily workflow, not a report of it.
-- **Technicians** get a task queue — assigned work orders with priority, due time, and location.
+**Owners** get a portfolio view — occupancy, revenue, blocked invoices, and maintenance backlog across every property.
+
+<a href="docs/assets/product-portfolio.png">
+  <img src="docs/assets/product-portfolio.png" alt="PMLAD owner portfolio overview" width="900">
+</a>
+
+*Portfolio overview — occupancy, collected vs outstanding revenue, blocked invoices, and maintenance backlog across the portfolio.*
+
+**Property managers** get an operational inbox — invoices awaiting approval, unit turns in progress, open work orders. It's the daily workflow, not a report of it.
+
+<a href="docs/assets/product-inbox.png">
+  <img src="docs/assets/product-inbox.png" alt="PMLAD property manager operational inbox" width="900">
+</a>
+
+*Operational inbox — work orders grouped by state, plus invoices waiting on approval.*
+
+**Technicians** get a task queue — assigned work orders with priority, due time, and location.
+
+<a href="docs/assets/product-tasks.png">
+  <img src="docs/assets/product-tasks.png" alt="PMLAD technician task queue" width="900">
+</a>
+
+*Task queue — assigned work orders with priority, category, status, and due date.*
+
+Behind those surfaces is the usual CRUD — properties, residents, invoices, maintenance — each one scoped to the organization that owns it.
+
+<a href="docs/assets/product-properties.png">
+  <img src="docs/assets/product-properties.png" alt="PMLAD properties list" width="900">
+</a>
+
+*Properties — the CRUD surface behind the dashboards, showing a four-property portfolio.*
 
 Underneath, every entity — property, resident, invoice, work order — is scoped to the organization that owns it. More on that below, because it's the part this repository exists to show.
 
