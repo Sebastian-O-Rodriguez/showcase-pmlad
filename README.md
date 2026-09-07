@@ -1,16 +1,32 @@
-# PMLAD: Property Management Software
+# PMLAD
 
-<p align="center"><strong>A property-management platform for bringing properties, tenants, maintenance, payments, and reporting into one operational system.</strong></p>
+<p align="center"><strong>Property-management software for running properties, tenants, maintenance, payments, and reporting in one system.</strong></p>
 
-Property management involves constant coordination between properties, tenants, leases, maintenance, payments, and communication. When that work is spread across disconnected tools and manual follow-up, routine operations become harder than they need to be.
+Property management has coordination everywhere:
 
-PMLAD brings those workflows into one product. The goal is to give property managers a clearer view of their portfolio, improve the operating loop with tenants, and create a foundation for more assisted workflows over time.
+```text
+Properties
+    ↓
+Tenants
+    ↓
+Leases
+    ↓
+Maintenance
+    ↓
+Payments
+    ↓
+Reporting
+```
+
+PMLAD pulls that work into one operating system.
+
+The goal is a clearer view of the portfolio, a tighter operating loop with tenants, and a foundation for more assisted workflows over time.
 
 <a href="docs/assets/product-portfolio.png">
   <img src="docs/assets/product-portfolio.png" alt="PMLAD owner portfolio overview" width="900">
 </a>
 
-*Portfolio overview: the owner's view across every property, showing occupancy, collected versus outstanding revenue, blocked invoices, and maintenance backlog.*
+*Portfolio overview: the owner's view across every property, showing occupancy, collected versus outstanding revenue, blocked invoices, and the maintenance backlog.*
 
 ## Contents
 
@@ -49,13 +65,7 @@ The interface is organized around the roles doing the work, not around a dashboa
 
 *Task queue: assigned work orders with priority, category, status, and due date.*
 
-Behind those surfaces sit the ordinary records: properties, tenants, invoices, maintenance.
-
-<a href="docs/assets/product-properties.png">
-  <img src="docs/assets/product-properties.png" alt="PMLAD properties list" width="900">
-</a>
-
-*Properties: the CRUD surface behind the dashboards, showing a four-property portfolio.*
+Behind those workflows are the core records that keep the operation running: properties, residents, invoices, and maintenance.
 
 ## How the platform is structured
 
@@ -88,28 +98,28 @@ PostgreSQL
         ↓
 Tenant policy
      ↙     ↘
- allowed   denied
-    ↓        ↓
- own rows  no rows
+Allowed   Denied
+   ↓         ↓
+Own data   No data
 ```
 
 The boundary breaks the failure cases in a predictable direction:
 
 ```text
-Correct tenant  -> own data
-Missing tenant  -> no data
-Wrong tenant    -> no data
+Correct tenant  → own data
+Missing context → no data
+Wrong tenant    → no data
 ```
 
 Three ideas carry the whole design.
 
-**Database-enforced isolation.** Row-level security evaluates tenant context on every protected query. The application does not get a vote after the query is written. If the context is missing or wrong, PostgreSQL returns zero rows.
+**Database-enforced isolation.** Row-level security evaluates tenant context on every protected query. If the context is missing or wrong, PostgreSQL returns zero rows.
 
-**Transaction-scoped tenant context.** Context travels into each transaction with `SET LOCAL`, so it dies when the transaction ends. It cannot leak onto a pooled connection and show up in the next request. Tenant ids are validated against a strict UUID format before interpolation, and a missing context coalesces to the nil UUID that matches no real row.
+**Transaction-scoped tenant context.** Context travels into each transaction with `SET LOCAL` and dies when the transaction ends, so it cannot leak onto a pooled connection. Tenant ids are validated before interpolation, and a missing context coalesces to the nil UUID that matches no real row.
 
-**Default-deny behavior.** A query without valid context silently returns nothing rather than throwing. That is harder to debug than an error, but a confusing empty result beats a cross-tenant leak every time.
+**Default-deny behavior.** A query without valid context returns nothing rather than throwing. A quiet empty result beats a cross-tenant leak every time.
 
-The boundary is proven with a validation suite that runs as plain SQL against a live database and deliberately attempts the failures that matter: unscoped queries, cross-tenant reads and writes, forged or empty context, and an attempt to switch row-level security off.
+The boundary is proven with a SQL-based validation suite that runs the failures that matter: unscoped queries, cross-tenant reads and writes, forged context, and an attempt to disable row-level security.
 
 ## Where PMLAD is headed
 
