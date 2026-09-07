@@ -1,128 +1,109 @@
-# PMLAD — property-management software
+# PMLAD — the operating system behind property management
 
-**PMLAD is property-management software designed to improve the day-to-day loop between property managers, properties, and tenants — from maintenance and communication to reporting and operational workflows.**
+Property management is coordination-heavy work. A manager is constantly moving between properties, tenants, leases, maintenance requests, invoices, communication, and reporting — and a lot of that still happens across disconnected tools and manual follow-up.
 
-The broader project is being built with agent-assisted operations in mind: software should help coordinate routine property-management work while keeping sensitive tenant and property data behind strong system boundaries.
+PMLAD is my attempt to turn that into one integrated system: a place to run the portfolio, tighten the loop between managers and tenants, and gradually hand the repetitive parts of the work to software.
 
-## What this repository shows
+## Why it exists
 
-This is not the full PMLAD application. It is a public showcase of selected backend engineering from the private project.
+Most software in this space is either an accounting package, a listing tool, or a spreadsheet with extra steps. None of them treat the *operating loop* — the daily back-and-forth between an owner, a property manager, and the people doing the work — as the product.
 
-The focus here is **multi-tenant architecture**: how the system keeps one organization's properties, tenants, and operational data isolated from every other organization — even when application code makes a mistake.
+PMLAD starts from that loop.
 
 ```mermaid
 flowchart TB
-    REQ["Application request"] --> CTX["Tenant context"]
-    CTX --> POL["PostgreSQL policy check"]
-    POL --> Q{"Allowed?"}
-    Q -->|yes| OK["tenant's own rows"]
-    Q -->|no| DENY["zero rows"]
-    style OK stroke:#27c93f
+    P["Properties"] --- M["Managers"]
+    M --- T["Tenants"]
+    P --- T
+    style P fill:#1e3a2f,stroke:#27c93f,color:#fff
+    style M fill:#1e3a2f,stroke:#27c93f,color:#fff
+    style T fill:#1e3a2f,stroke:#27c93f,color:#fff
+```
+
+The work that flows through those relationships — leases, maintenance requests, invoices, resident communication, unit turns — is the product. Reporting falls out of that work naturally instead of being bolted on afterward.
+
+## What the product does
+
+The interface is organized around the roles doing the work, not around a dashboard you have to decode:
+
+- **Owners** get a portfolio view — occupancy, revenue, blocked invoices, and maintenance backlog across every property.
+- **Property managers** get an operational inbox — invoices awaiting approval, unit turns in progress, open work orders. It's the daily workflow, not a report of it.
+- **Technicians** get a task queue — assigned work orders with priority, due time, and location.
+
+Underneath, every entity — property, resident, invoice, work order — is scoped to the organization that owns it. More on that below, because it's the part this repository exists to show.
+
+## Where it's going
+
+The longer-term direction is to make the software increasingly capable of *noticing* what needs attention and *preparing* the routine work — drafting the repetitive communication, surfacing the invoice that's been stuck, flagging the unit turn that's about to breach its SLA — with a human approving before anything is executed.
+
+The design principle throughout: AI and natural-language are supporting interfaces. The system has to be fully runnable by a person, with or without them. Every automated action has to be explainable — you should be able to trace *why* a status changed or a number appeared.
+
+---
+
+## The problem you can't see from the screenshots
+
+A product like this has one failure mode that would make every feature irrelevant: **isolation**.
+
+Multiple property-management organizations run on the same application. Their tenants, leases, invoices, and maintenance records must never bleed across organizational boundaries — not through a bug, not through a forgotten filter, not through an over-privileged database role.
+
+That's the subsystem this public repository exists to demonstrate.
+
+### Why the boundary lives in the database
+
+A common approach is to filter records in application code — every query remembers to add `WHERE organization_id = ?`. That works until the one endpoint that forgets. One forgotten filter is all it takes for one customer to see another customer's data, and "we have filters everywhere" is not a boundary. It's a convention.
+
+PMLAD moves the boundary into PostgreSQL itself:
+
+```mermaid
+flowchart TB
+    REQ["Application request"] --> CTX["Tenant context<br/><i>(org + entity, set per transaction)</i>"]
+    CTX --> POL["PostgreSQL row-level security"]
+    POL --> Q{"Row belongs to<br/>this tenant?"}
+    Q -->|"yes"| OK["return the row"]
+    Q -->|"no"| DENY["return nothing"]
     style DENY stroke:#27c93f
 ```
 
+Row-level security evaluates the tenant context for *every* protected query. The application doesn't get a vote after the query is written — if the context is missing or wrong, the database returns zero rows. That's the default-deny posture: nothing in the application blocks the failure cases; the database does.
+
 | Request | Result |
 |---|---|
-| Correct tenant context | the tenant's own data |
-| Missing context (the bug) | no data |
-| Wrong tenant | no data |
+| Correct tenant context | the tenant's own rows |
+| Missing context (the bug) | no rows |
+| Wrong tenant | no rows |
 
-Nothing in the application blocks the second and third cases. The database does.
+### How tenant context reaches the database safely
 
-## The product
+Every database operation needs to know which organization it belongs to. PMLAD passes that context into the database for the lifetime of a transaction:
 
-Property management runs on coordination: maintenance requests moving between tenants and managers, rent and invoice tracking, unit turnover, and a constant stream of small operational decisions. PMLAD carries that coordination in software — a multi-tenant platform covering properties, units, tenants, leases, invoices, and work orders, with portfolio dashboards on top.
+- The context is set with transaction-scoped `SET LOCAL` state — it expires when the transaction ends, so it can't leak onto a pooled connection and show up in the next request.
+- Postgres session variables can't be parameterized like normal values, so every tenant id is validated against a strict UUID format *before* it's interpolated. Malformed input fails closed before it ever reaches the database.
+- A missing or empty context coalesces to the nil UUID (`00000000-…`), which matches no real row. There's no "unset means open" path.
 
-Its direction is to assist the coordination itself: surfacing what needs attention, drafting repetitive communication, and eventually executing routine property workflows with human approval — always inside the same boundaries the rest of the platform enforces.
+### Proving the boundary holds
 
-## See it work
-
-```bash
-docker compose up -d          # throwaway Postgres 16
-./scripts/default-deny-demo.sh
-```
+An isolation claim is only as good as the tests trying to break it. The validation suite runs as plain SQL against the live database and deliberately attempts the failures that actually matter:
 
 ```text
-1. SCOPED QUERY   (app set tenant context)    → 2 rows
+1. SCOPED QUERY   (app set tenant context)    → the tenant's rows
 2. UNSCOPED QUERY (app forgot the context)    → 0 rows
 3. CROSS-TENANT   (A asking for B's rows)     → 0 rows
 ```
 
-- Case 1 is a normal request: the app states which tenant it is acting for, and gets that tenant's rows.
-- Cases 2 and 3 are the failure modes that leak data in most stacks. Here both return nothing.
-- A full 13-group suite (`./scripts/validate-rls.sh`) runs the same checks plus write attempts, forged context, and bypass attempts — 13/13 pass.
+Plus the adversarial cases: cross-tenant writes, forged or empty context, and a session trying to switch row-level security off (the database errors instead of complying). The same suite runs in staging with writes and read-only in production before any deploy.
 
-## How tenant isolation survives application mistakes
+There's a deliberate tradeoff worth naming: a query without valid context silently returns *nothing* rather than throwing. That's harder to debug than an error — but a confusing empty result beats a cross-tenant leak, every time.
 
-```mermaid
-sequenceDiagram
-    participant App as Application
-    participant DB as PostgreSQL
+## About this repository
 
-    App->>DB: BEGIN
-    App->>DB: pass tenant context (org, entity)
-    App->>DB: SELECT * FROM property
-    DB-->>App: only rows whose tenant matches the context
-    App->>DB: COMMIT
+PMLAD is a larger private project, deployed and in active use. This public repository contains a reconstructed, public-safe version of the multi-tenant isolation layer — the schema, the row-level security policies, and the adversarial validation suite — so the architecture can be inspected and run without exposing private application code, data, or infrastructure. The model is a minimal equivalent (`organization → entity → property/invoice`), names are generic, and the seed data is fixed fixtures, not real customers.
 
-    App->>DB: BEGIN (bug: no context passed)
-    App->>DB: SELECT * FROM property
-    DB-->>App: 0 rows
-    App->>DB: COMMIT
-```
-
-## Engineering highlights
-
-### 1. Database-enforced tenant isolation
-
-A multi-tenant application can filter records in application code, but that makes every query responsible for remembering the tenant boundary. One forgotten filter in one endpoint, and customers see each other's data.
-
-PMLAD moves that boundary into PostgreSQL. Row-level security evaluates tenant context for every protected query, so a missing application filter does not automatically become cross-tenant access. The tradeoff is deliberate: a query without valid context silently returns nothing, which can be harder to debug than an error — a confusing empty result beats a cross-tenant leak.
-
-### 2. Tenant context travels safely into the database
-
-Every database operation needs to know which organization it belongs to. PMLAD passes that tenant context into the database for the lifetime of a transaction, where PostgreSQL uses it to enforce access.
-
-Technically, the context is set with transaction-scoped `SET LOCAL` state — it expires with the transaction, so it can't leak to the next request on a pooled connection. Postgres session variables can't be parameterized like ordinary values, so every tenant id is validated against a strict UUID format before it is ever interpolated. Malformed input fails closed before reaching the database.
-
-### 3. Adversarial verification and safe failure
-
-An isolation claim is only as good as the tests trying to break it. The validation suite runs as plain SQL against the live database and deliberately attempts the failures that matter: missing context, wrong tenant, cross-tenant writes, forged or empty context, and a session trying to switch row-level security off (the database errors instead of complying). The same suite runs in staging with writes and in production read-only before any deploy.
-
-## Project status
-
-| Capability | Status |
-|---|---|
-| Core property-management application (properties, units, tenants, leases, invoices) | Built |
-| Maintenance / work-order workflows | Built |
-| Portfolio dashboards and reporting | Built |
-| Multi-tenant architecture | Built |
-| Tenant-isolation subsystem shown in this showcase | Built — validated and deployed to the private application's production database |
-| AI-assisted property workflows | Product direction |
-
-## Run this showcase
+## Run it locally
 
 ```bash
-docker compose up -d
-./scripts/default-deny-demo.sh   # the 3-case outcome above
-./scripts/validate-rls.sh        # full adversarial suite (13 groups)
-./scripts/verify-rls.sh          # structural CI gate
+docker compose up -d          # throwaway Postgres 16
+./scripts/default-deny-demo.sh  # the 3-case outcome above
+./scripts/validate-rls.sh     # full adversarial suite (13 groups)
 ```
 
 Requires Docker and `psql`.
-
-## Public showcase scope
-
-| Component | Status | Detail |
-|---|---|---|
-| RLS policy design | Real | Faithful reconstruction of the production policy pattern (default-deny, `FORCE RLS`, separate read/write rules). |
-| Tenant-context protocol | Reconstructed | Generic names; original role names and database names replaced. |
-| Validation suite | Reconstructed | Same structure and edge cases as the production suite; fewer tables (3 vs 12). |
-| Data model | Reconstructed | Minimal equivalent: Organization → Entity → Property/Invoice. |
-| Seed data | Mocked | Fixed UUIDs, no real customer data. |
-| Infrastructure & app framework | Omitted | No cloud infra, auth provider, or app framework — the context-propagation pattern is documented above. |
-| Credentials | Sanitized | Demo-only password for a throwaway Docker Postgres. |
-
-## About
-
-Built by Sebastian O. Rodriguez. PMLAD is a deployed private application in active dogfooding; the isolation design shown here is the one enforced on its production database.
